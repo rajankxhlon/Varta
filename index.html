@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Auth</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Varta:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
+
+        body { 
+            font-family: Arial, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-direction: column;
+            min-height: 100vh; 
+            background-color: #121212; /* Dark background */
+            color: #e0e0e0; /* Light text color */
+            margin: 0;
+            padding: 0 1rem;
+        }
+
+        .header {
+            position: fixed; /* Header ko fix rakhega */
+            top: 0; /* Upar se shuru hoga */
+            width: 100%; /* Puri screen ki chaudai lega */
+            text-align: center;
+            background-color: #121212; /* Header ka background color */
+            padding: 1rem 0;
+            z-index: 100; /* Dusre elements ke upar rakhega */
+        }
+
+        .header h1 {
+            font-family: 'Dancing Script', cursive; /* Instagram jaisa font */
+            font-size: 3rem;
+            font-weight: 700;
+            color: #bb86fc; /* Purple accent color */
+            margin: 0;
+        }
+
+        .container { 
+            background-color: #1e1e1e; /* Darker container background */
+            padding: 2rem; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); 
+            width: 100%;
+            max-width: 100%; 
+            text-align: center;
+            box-sizing: border-box;
+            height: 100vh; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 0;
+            padding-top: 80px; /* Header ke liye space */
+            padding-bottom: 60px; /* Footer ke liye space */
+            overflow-y: auto; /* Agar content zyada ho toh scroll ho sake */
+        }
+        
+        /* Adjustments for the inner content to be centered within the full-screen container */
+        .form-content {
+            width: 100%;
+            max-width: 300px;
+        }
+
+        h2 { 
+            text-align: center; 
+            color: #bb86fc; /* Purple accent color */
+        }
+        
+        input[type="email"], input[type="password"], input[type="text"] { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border: 1px solid #333; 
+            border-radius: 4px; 
+            box-sizing: border-box; 
+            background-color: #2c2c2c; /* Dark input background */
+            color: #e0e0e0; /* Light input text color */
+        }
+        
+        button { 
+            width: 100%; 
+            padding: 10px; 
+            background-color: #bb86fc; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 16px; 
+        }
+        
+        button:hover { 
+            background-color: #9a67ea; 
+        }
+        
+        .toggle-form { 
+            text-align: center; 
+            margin-top: 1rem; 
+        }
+        
+        .toggle-form a { 
+            color: #bb86fc; 
+            text-decoration: none; 
+        }
+        
+        #loggedIn, #usernameCreation { 
+            display: none; 
+        }
+
+        /* Loading Animation */
+        .loading {
+            border: 4px solid #333;
+            border-radius: 50%;
+            border-top: 4px solid #bb86fc;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            position: fixed; /* Footer ko fix rakhega */
+            bottom: 0; /* Niche se shuru hoga */
+            width: 100%;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #888;
+            background-color: #121212;
+            padding: 1rem 0;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Varta</h1>
+    </div>
+
+    <div class="container">
+        <div class="form-content">
+            <div id="loadingScreen">
+                <h2>Checking session...</h2>
+                <div class="loading"></div>
+            </div>
+
+            <div id="login" style="display: none;">
+                <h2>Log In</h2>
+                <input type="email" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button id="loginBtn">Log In</button>
+                <div class="toggle-form">
+                    <p>Don't have an account? <a href="#" id="showRegister">Register</a></p>
+                </div>
+            </div>
+
+            <div id="register" style="display: none;">
+                <h2>Register</h2>
+                <input type="email" id="registerEmail" placeholder="Email" required>
+                <input type="password" id="registerPassword" placeholder="Password" required>
+                <button id="registerBtn">Register</button>
+                <div class="toggle-form">
+                    <p>Already have an account? <a href="#" id="showLogin">Log In</a></p>
+                </div>
+            </div>
+
+            <div id="usernameCreation" style="display: none;">
+                <h2>Create a Username</h2>
+                <input type="text" id="username" placeholder="Username" required>
+                <button id="saveUsernameBtn">Save Username</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Made by Gamerz Rajan YT</p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
+
+    <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyAdu3d0_qEDZaXkBkJAO0VY0htme6_EMyM",
+          authDomain: "bluegram-27a79.firebaseapp.com",
+          databaseURL: "https://bluegram-27a79-default-rtdb.firebaseio.com",
+          projectId: "bluegram-27a79",
+          storageBucket: "bluegram-27a79.firebasestorage.app",
+          messagingSenderId: "780485443121",
+          appId: "1:780485443121:web:f7469d2264293fcbdf5f10",
+          measurementId: "G-YF5S9HK2Q5"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Get UI elements
+        const loginDiv = document.getElementById('login');
+        const registerDiv = document.getElementById('register');
+        const usernameCreationDiv = document.getElementById('usernameCreation');
+        const loadingScreen = document.getElementById('loadingScreen');
+
+        const showRegisterLink = document.getElementById('showRegister');
+        const showLoginLink = document.getElementById('showLogin');
+
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const saveUsernameBtn = document.getElementById('saveUsernameBtn');
+
+        // Toggle forms
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginDiv.style.display = 'none';
+            registerDiv.style.display = 'block';
+        });
+
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerDiv.style.display = 'none';
+            loginDiv.style.display = 'block';
+        });
+
+        // Handle registration
+        registerBtn.addEventListener('click', () => {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    alert('Registration successful!');
+                    // Redirect to username creation, which will be handled by onAuthStateChanged
+                })
+                .catch((error) => {
+                    alert(error.message);
+                });
+        });
+
+        // Save username
+        saveUsernameBtn.addEventListener('click', () => {
+            const username = document.getElementById('username').value;
+            const user = auth.currentUser;
+
+            if (user && username) {
+                database.ref('users/' + user.uid).set({
+                    username: username,
+                    email: user.email
+                }).then(() => {
+                    alert('Username saved!');
+                    // Redirect to home page
+                    window.location.href = 'home.html';
+                }).catch((error) => {
+                    alert(error.message);
+                });
+            }
+        });
+
+        // Handle login
+        loginBtn.addEventListener('click', () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // The onAuthStateChanged listener will handle the redirection
+                })
+                .catch((error) => {
+                    alert(error.message);
+                });
+        });
+
+        // Listen for authentication state changes
+        auth.onAuthStateChanged((user) => {
+            loadingScreen.style.display = 'none'; // Hide loading screen once auth state is known
+
+            if (user) {
+                // User is logged in
+                loginDiv.style.display = 'none';
+                registerDiv.style.display = 'none';
+
+                // Check if the user has a username
+                database.ref('users/' + user.uid).once('value').then((snapshot) => {
+                    if (snapshot.exists() && snapshot.val().username) {
+                        // User has a username, redirect to home.html
+                        window.location.href = 'home.html';
+                    } else {
+                        // User does not have a username, show the username creation form
+                        usernameCreationDiv.style.display = 'block';
+                        loginDiv.style.display = 'none';
+                    }
+                }).catch((error) => {
+                    console.error("Error fetching username:", error);
+                    // In case of an error, show username creation form as a fallback
+                    usernameCreationDiv.style.display = 'block';
+                    loginDiv.style.display = 'none';
+                });
+            } else {
+                // User is logged out, show the login form
+                loginDiv.style.display = 'block';
+                registerDiv.style.display = 'none';
+                usernameCreationDiv.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
